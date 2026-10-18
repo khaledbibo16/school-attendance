@@ -1,25 +1,17 @@
-
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#1d3557">
-
-  <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#1d3557">
-
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>الإدارة - بطاقات QR للتلاميذ</title>
+    <title>إدارة البطاقات - نظام الحضور</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1d3557">
 
+    <!-- مكتبة توليد رمز QR -->
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
 
     <style>
-        * {
-            box-sizing: border-box;
-        }
-
+        * { box-sizing: border-box; }
         body {
             font-family: Tahoma, Arial, sans-serif;
             background: #f4f7f6;
@@ -29,21 +21,17 @@
             color: #333;
         }
 
-        .box {
+        .main-container { max-width: 500px; margin: auto; }
+
+        .app-section {
             background: white;
-            max-width: 420px;
-            margin: auto;
             padding: 20px;
             border-radius: 12px;
             box-shadow: 0 4px 10px rgba(0,0,0,.1);
             text-align: right;
         }
 
-        h2 {
-            color: #1d3557;
-            text-align: center;
-            margin-top: 0;
-        }
+        h2 { color: #1d3557; text-align: center; margin-top: 0; }
 
         .btn {
             width: 100%;
@@ -56,51 +44,27 @@
             cursor: pointer;
             color: white;
         }
+        .btn-generate { background: #2d6a4f; }
+        .btn-print { background: #1d3557; }
+        .btn-secondary { background: #6c757d; }
 
-        .btn-print {
-            background: #2d6a4f;
-        }
-
-        .btn-delete {
-            background: #c62828;
-            padding: 4px 8px;
-            font-size: 12px;
-            margin: 0;
-            width: auto;
-        }
-
-        input {
+        input, textarea {
             width: 100%;
             padding: 10px;
             margin: 5px 0 15px;
             border: 1px solid #ccc;
             border-radius: 6px;
             font-size: 15px;
+            font-family: inherit;
         }
+        textarea {
+            height: 160px;
+            resize: vertical;
+            line-height: 1.6;
+        }
+        label { font-weight: bold; font-size: 13px; color: #444; display: block; }
 
-        label {
-            font-weight: bold;
-            font-size: 13px;
-            color: #444;
-            display: block;
-        }
-
-        .student-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #f9f9f9;
-            padding: 6px 10px;
-            margin-bottom: 5px;
-            border-radius: 6px;
-            font-size: 13px;
-            border: 1px solid #eee;
-            gap: 8px;
-        }
-
-        #cards-container {
-            margin-top: 15px;
-        }
+        #cards-container { margin-top: 15px; }
 
         .print-card {
             border: 2px dashed #2d6a4f;
@@ -125,411 +89,28 @@
             overflow-wrap: anywhere;
         }
 
-        .qr-box {
-            flex-shrink: 0;
-            width: 80px;
-            height: 80px;
-        }
+        .qr-box { flex-shrink: 0; width: 80px; height: 80px; }
+        .qr-box canvas { display: block; width: 80px; height: 80px; }
 
-        .qr-box canvas {
-            display: block;
-            width: 80px;
-            height: 80px;
-        }
+        @page { size: A4 portrait; margin: 8mm; }
 
-        @page {
-            size: A4 portrait;
-            margin: 8mm;
-        }
-
-  
-@media print {
-    @page {
-        size: A4 portrait;
-        margin: 7mm;
-    }
-
-    html,
-    body {
-        display: block !important;
-        width: 100% !important;
-        height: auto !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        background: white !important;
-        overflow: visible !important;
-    }
-
-    body.printing-cards #admin-box {
-        display: block !important;
-        width: 100% !important;
-        max-width: none !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        box-shadow: none !important;
-        border-radius: 0 !important;
-    }
-
-    body.printing-cards #admin-box > h2,
-    body.printing-cards #setup-section,
-    body.printing-cards .no-print {
-        display: none !important;
-    }
-
-    body.printing-cards #cards-section {
-        display: block !important;
-        width: 100% !important;
-        margin: 0 !important;
-        padding: 0 !important;
-    }
-
-    body.printing-cards #cards-container {
-        display: grid !important;
-        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-        grid-auto-rows: 1fr;
-        gap: 3mm !important;
-        width: 100% !important;
-        margin: 0 !important;
-        padding: 0 !important;
-    }
-
-    body.printing-cards .print-card {
-        display: flex !important;
-        flex-direction: row !important;
-        align-items: center !important;
-        justify-content: space-between !important;
-        gap: 3mm !important;
-        width: 100% !important;
-        height: 62mm !important;
-        margin: 0 !important;
-        padding: 3mm !important;
-        overflow: hidden !important;
-        background: white !important;
-        border: 1.5px dashed #2d6a4f !important;
-        border-radius: 2mm !important;
-        box-sizing: border-box !important;
-        break-inside: avoid !important;
-        page-break-inside: avoid !important;
-    }
-
-    body.printing-cards .card-info {
-        flex: 1 !important;
-        min-width: 0 !important;
-        font-size: 11pt !important;
-        line-height: 1.7 !important;
-        overflow-wrap: anywhere !important;
-    }
-
-    body.printing-cards .qr-box {
-        flex: 0 0 30mm !important;
-        width: 30mm !important;
-        height: 30mm !important;
-    }
-
-    body.printing-cards .qr-box canvas {
-        display: block !important;
-        width: 30mm !important;
-        height: 30mm !important;
-        max-width: 100% !important;
-    }
-
-        }
-    </style>
-</head>
-
-<body>
-
-<div class="box" id="admin-box">
-
-    <h2>⚙️ واجهة الإدارة والملاحظين</h2>
-
-    <div id="setup-section">
-
-        <label for="school-input">اسم المؤسسة التربوية:</label>
-        <input
-            type="text"
-            id="school-input"
-            value="المدرسة الابتدائية سعايدية عبد القادر"
-        >
-
-        <label for="class-input">اسم القسم:</label>
-        <input
-            type="text"
-            id="class-input"
-            value="السنة الأولى ابتدائي (1أ)"
-        >
-
-        <label for="image-input">🖼️ رفع صورة قائمة التلاميذ:</label>
-        <input
-            type="file"
-            id="image-input"
-            accept="image/*"
-        >
-
-        <p id="status-text"
-           style="font-size:13px;color:#d97706;text-align:center;display:none;">
-            ⏳ جاري استخراج الأسماء من الصورة...
-        </p>
-
-        <div id="edit-container" style="margin-top:15px;display:none;">
-
-            <label>📋 الأسماء المستخرجة (راجعها قبل الاعتماد):</label>
-
-            <div id="students-list-box"
-                 style="max-height:250px;overflow-y:auto;margin-bottom:10px;">
-            </div>
-
-            <button class="btn btn-print" onclick="generateQRCodes()">
-                🖨️ توليد واعتماد بطاقات QR
-            </button>
-
-        </div>
-    </div>
-
-    <div id="cards-section" style="display:none;">
-
-        <div class="no-print">
-            <button class="btn btn-print" onclick="printCards()">
-                🖨️ طباعة البطاقات على ورقة A4
-            </button>
-
-            <button class="btn"
-                    onclick="showSetup()"
-                    style="background:#6c757d;">
-                ⬅️ تعديل القائمة
-            </button>
-        </div>
-
-        <div id="cards-container"></div>
-
-    </div>
-
-</div>
-
-<script>
-    let studentsList = [];
-
-    try {
-        studentsList = JSON.parse(
-            localStorage.getItem("studentsList") || "[]"
-        );
-
-        if (!Array.isArray(studentsList)) {
-            studentsList = [];
-        }
-    } catch (error) {
-        studentsList = [];
-    }
-
-    const schoolInput = document.getElementById("school-input");
-    const classInput = document.getElementById("class-input");
-
-    schoolInput.value =
-        localStorage.getItem("schoolName") ||
-        schoolInput.value;
-
-    classInput.value =
-        localStorage.getItem("className") ||
-        classInput.value;
-
-    document.getElementById("image-input").addEventListener(
-        "change",
-        processImage
-    );
-
-    function escapeHTML(value) {
-        return String(value).replace(/[&<>"']/g, function (char) {
-            return {
-                "&": "&amp;",
-                "<": "&lt;",
-                ">": "&gt;",
-                '"': "&quot;",
-                "'": "&#39;"
-            }[char];
-        });
-    }
-
-    async function processImage(event) {
-        const file = event.target.files[0];
-
-        if (!file) return;
-
-        if (typeof Tesseract === "undefined") {
-            alert("تعذر تحميل أداة قراءة الصور. تحقق من الإنترنت.");
-            return;
-        }
-
-        const status = document.getElementById("status-text");
-        status.style.display = "block";
-
-        try {
-            const result = await Tesseract.recognize(file, "ara");
-            const text = result.data.text || "";
-
-            let lines = text.split("\n")
-                .map(line => line.replace(/[0-9٠-٩|]/g, "").trim())
-                .filter(line =>
-                    line.length > 3 &&
-                    !line.includes("المدرسة") &&
-                    !line.includes("قسم") &&
-                    !line.includes("السنة") &&
-                    !line.includes("الوزارة") &&
-                    !line.includes("قائمة")
-                );
-
-            lines = [...new Set(lines)];
-
-            if (lines.length === 0) {
-                alert("تعذر استخراج أسماء صحيحة. جرّب صورة أوضح.");
-                return;
+        @media print {
+            @page { size: A4 portrait; margin: 7mm; }
+            html, body { display: block !important; width: 100% !important; height: auto !important; margin: 0 !important; padding: 0 !important; background: white !important; overflow: visible !important; }
+            body.printing-cards .main-container { max-width: none !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
+            body.printing-cards .no-print,
+            body.printing-cards #setup-section { display: none !important; }
+            body.printing-cards #cards-section { display: block !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
+            body.printing-cards #cards-container {
+                display: grid !important;
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                grid-auto-rows: 1fr;
+                gap: 3mm !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
             }
-
-            studentsList = lines.map((name, index) => ({
-                num: String(index + 1),
-                name: name
-            }));
-
-            renderEditableStudents();
-
-        } catch (error) {
-            alert("حدث خطأ أثناء قراءة الصورة. تحقق من الإنترنت وحاول مجدداً.");
-        } finally {
-            status.style.display = "none";
-        }
-    }
-
-    function renderEditableStudents() {
-        const container = document.getElementById("students-list-box");
-        container.innerHTML = "";
-
-        studentsList.forEach((student, index) => {
-            const row = document.createElement("div");
-            row.className = "student-row";
-
-            const name = document.createElement("span");
-            name.textContent = (index + 1) + ". " + student.name;
-
-            const button = document.createElement("button");
-            button.className = "btn btn-delete";
-            button.textContent = "حذف";
-
-            button.addEventListener("click", function () {
-                removeStudent(index);
-            });
-
-            row.appendChild(name);
-            row.appendChild(button);
-            container.appendChild(row);
-        });
-
-        document.getElementById("edit-container").style.display = "block";
-    }
-
-    function removeStudent(index) {
-        studentsList.splice(index, 1);
-
-        studentsList.forEach((student, i) => {
-            student.num = String(i + 1);
-        });
-
-        renderEditableStudents();
-    }
-
-    async function generateQRCodes() {
-        if (studentsList.length === 0) {
-            alert("لا توجد قائمة تلاميذ. ارفع صورة القائمة أولاً.");
-            return;
-        }
-
-        if (typeof QRCode === "undefined") {
-            alert("تعذر تحميل مكتبة QR. تحقق من اتصال الإنترنت.");
-            return;
-        }
-
-        const school = schoolInput.value.trim();
-        const cls = classInput.value.trim();
-
-        localStorage.setItem("schoolName", school);
-        localStorage.setItem("className", cls);
-        localStorage.setItem("studentsList", JSON.stringify(studentsList));
-
-        const container = document.getElementById("cards-container");
-        container.innerHTML = "";
-
-        for (const student of studentsList) {
-            const card = document.createElement("div");
-            card.className = "print-card";
-
-            const info = document.createElement("div");
-            info.className = "card-info";
-
-            const schoolName = document.createElement("b");
-            schoolName.textContent = school;
-
-            const classLine = document.createElement("div");
-            classLine.textContent = "القسم: " + cls;
-
-            const numberLine = document.createElement("div");
-            numberLine.textContent = "رقم التلميذ: " + student.num;
-
-            const nameLine = document.createElement("div");
-            nameLine.append("اسم التلميذ: ");
-
-            const boldName = document.createElement("b");
-            boldName.textContent = student.name;
-            nameLine.appendChild(boldName);
-
-            info.append(schoolName, classLine, numberLine, nameLine);
-
-            const qrBox = document.createElement("div");
-            qrBox.className = "qr-box";
-
-            const canvas = document.createElement("canvas");
-            qrBox.appendChild(canvas);
-
-            card.append(info, qrBox);
-            container.appendChild(card);
-
-            try {
-                await QRCode.toCanvas(canvas, student.num, {
-                    width: 160,
-                    margin: 2,
-                    errorCorrectionLevel: "H"
-                });
-            } catch (error) {
-                console.error("QR generation failed:", error);
-            }
-        }
-
-        document.getElementById("setup-section").style.display = "none";
-        document.getElementById("cards-section").style.display = "block";
-    }
-
-    function printCards() {
-        const container = document.getElementById("cards-container");
-
-        if (!container || !container.querySelector(".print-card")) {
-            alert("ولّد بطاقات QR أولاً.");
-            return;
-        }
-
-        document.body.classList.add("printing-cards");
-
-        window.print();
-    }
-
-    window.addEventListener("afterprint", function () {
-        document.body.classList.remove("printing-cards");
-    });
-
-    function showSetup() {
-        document.body.classList.remove("printing-cards");
-
-        document.getElementById("setup-section").style.display = "block";
-        document.getElementById("cards-section").style.display = "none";
-    }
-</script>
-<a href="teacher.html" style="display:block; text-align:center; margin-top:20px; color:#1d3557; font-weight:bold; text-decoration:none;">📱 الانتقال لواجهة الأستاذ (المسح)</a>
-
-</body>
-</html>
+            body.printing-cards .print-card {
+                display: flex !important;
+                flex-direction: row !important;
+                align-items
