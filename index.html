@@ -7,6 +7,9 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1d3557">
 
+    <!-- مكتبة QR الأصلية -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+
     <style>
         * { box-sizing: border-box; }
         body {
@@ -87,7 +90,7 @@
         }
 
         .qr-box { flex-shrink: 0; width: 80px; height: 80px; }
-        .qr-box img { display: block; width: 80px; height: 80px; }
+        .qr-box canvas { display: block; width: 80px; height: 80px; }
 
         @page { size: A4 portrait; margin: 8mm; }
 
@@ -126,7 +129,7 @@
             }
             body.printing-cards .card-info { flex: 1 !important; min-width: 0 !important; font-size: 11pt !important; line-height: 1.7 !important; }
             body.printing-cards .qr-box { flex: 0 0 30mm !important; width: 30mm !important; height: 30mm !important; }
-            body.printing-cards .qr-box img { display: block !important; width: 30mm !important; height: 30mm !important; }
+            body.printing-cards .qr-box canvas { display: block !important; width: 30mm !important; height: 30mm !important; }
         }
     </style>
 </head>
@@ -148,7 +151,7 @@
             <label for="names-input">✏️ اكتب أو الصق قائمة أسماء التلاميذ (اسم في كل سطر):</label>
             <textarea id="names-input" placeholder="محمد بلقاسم&#10;فاطمة الزهراء عيسى&#10;أحمد بن علي"></textarea>
 
-            <button class="btn btn-generate" onclick="processAndGenerate()">🖨️ توليد واعتماد بطاقات QR</button>
+            <button class="btn btn-generate" onclick="generateQRCodes()">🖨️ توليد واعتماد بطاقات QR</button>
         </div>
 
         <div id="cards-section" style="display:none;">
@@ -167,28 +170,16 @@
 </div>
 
 <script>
-    // استرجاع البيانات المحفوظة عند الفتح
-    window.onload = function() {
-        const schoolInput = document.getElementById("school-input");
-        const classInput = document.getElementById("class-input");
-        const namesInput = document.getElementById("names-input");
+    let studentsList = [];
 
-        if (localStorage.getItem("schoolName")) schoolInput.value = localStorage.getItem("schoolName");
-        if (localStorage.getItem("className")) classInput.value = localStorage.getItem("className");
+    const schoolInput = document.getElementById("school-input");
+    const classInput = document.getElementById("class-input");
+    const namesInput = document.getElementById("names-input");
 
-        try {
-            let savedList = JSON.parse(localStorage.getItem("studentsList") || "[]");
-            if (Array.isArray(savedList) && savedList.length > 0) {
-                namesInput.value = savedList.map(s => s.name).join("\n");
-            }
-        } catch(e) {}
-    };
+    schoolInput.value = localStorage.getItem("schoolName") || schoolInput.value;
+    classInput.value = localStorage.getItem("className") || classInput.value;
 
-    function processAndGenerate() {
-        const schoolInput = document.getElementById("school-input");
-        const classInput = document.getElementById("class-input");
-        const namesInput = document.getElementById("names-input");
-
+    async function generateQRCodes() {
         const rawText = namesInput.value.trim();
         if (!rawText) {
             alert("يرجى كتابة أو لصق أسماء التلاميذ أولاً.");
@@ -204,7 +195,7 @@
             return;
         }
 
-        let studentsList = lines.map((name, index) => ({
+        studentsList = lines.map((name, index) => ({
             num: String(index + 1),
             name: name
         }));
@@ -212,7 +203,6 @@
         const school = schoolInput.value.trim();
         const cls = classInput.value.trim();
 
-        // حفظ البيانات في التخزين المحلي
         localStorage.setItem("schoolName", school);
         localStorage.setItem("className", cls);
         localStorage.setItem("studentsList", JSON.stringify(studentsList));
@@ -220,8 +210,7 @@
         const container = document.getElementById("cards-container");
         container.innerHTML = "";
 
-        // بناء البطاقات وتوليد صور الـ QR عبر رابط API مباشر
-        studentsList.forEach((student) => {
+        for (const student of studentsList) {
             const card = document.createElement("div");
             card.className = "print-card";
 
@@ -247,17 +236,22 @@
 
             const qrBox = document.createElement("div");
             qrBox.className = "qr-box";
-            
-            // توليد الصورة عبر خدمة api.qrserver.com المباشرة
-            const img = document.createElement("img");
-            img.src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(student.num)}`;
-            img.alt = "QR Code";
-
-            qrBox.appendChild(img);
+            const canvas = document.createElement("canvas");
+            qrBox.appendChild(canvas);
 
             card.append(info, qrBox);
             container.appendChild(card);
-        });
+
+            try {
+                await QRCode.toCanvas(canvas, student.num, {
+                    width: 160,
+                    margin: 2,
+                    errorCorrectionLevel: "H"
+                });
+            } catch (error) {
+                console.error("QR generation failed:", error);
+            }
+        }
 
         document.getElementById("setup-section").style.display = "none";
         document.getElementById("cards-section").style.display = "block";
@@ -266,7 +260,7 @@
     function printCards() {
         const container = document.getElementById("cards-container");
         if (!container || !container.querySelector(".print-card")) {
-            alert("قم بتوليد بطاقات QR أولاً.");
+            alert("ولّد بطاقات QR أولاً.");
             return;
         }
         document.body.classList.add("printing-cards");
