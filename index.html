@@ -7,9 +7,6 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1d3557">
 
-    <!-- مكتبة QR الأصلية -->
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
-
     <style>
         * { box-sizing: border-box; }
         body {
@@ -90,7 +87,7 @@
         }
 
         .qr-box { flex-shrink: 0; width: 80px; height: 80px; }
-        .qr-box canvas { display: block; width: 80px; height: 80px; }
+        .qr-box img { display: block; width: 80px; height: 80px; }
 
         @page { size: A4 portrait; margin: 8mm; }
 
@@ -129,7 +126,7 @@
             }
             body.printing-cards .card-info { flex: 1 !important; min-width: 0 !important; font-size: 11pt !important; line-height: 1.7 !important; }
             body.printing-cards .qr-box { flex: 0 0 30mm !important; width: 30mm !important; height: 30mm !important; }
-            body.printing-cards .qr-box canvas { display: block !important; width: 30mm !important; height: 30mm !important; }
+            body.printing-cards .qr-box img { display: block !important; width: 30mm !important; height: 30mm !important; }
         }
     </style>
 </head>
@@ -151,13 +148,13 @@
             <label for="names-input">✏️ اكتب أو الصق قائمة أسماء التلاميذ (اسم في كل سطر):</label>
             <textarea id="names-input" placeholder="محمد بلقاسم&#10;فاطمة الزهراء عيسى&#10;أحمد بن علي"></textarea>
 
-            <button class="btn btn-generate" onclick="generateQRCodes()">🖨️ توليد واعتماد بطاقات QR</button>
+            <button class="btn btn-generate" onclick="generateCards()">🖨️ توليد واعتماد بطاقات QR</button>
         </div>
 
         <div id="cards-section" style="display:none;">
             <div class="no-print">
-                <button class="btn btn-print" onclick="printCards()">🖨️ طباعة البطاقات (A4)</button>
-                <button class="btn btn-secondary" onclick="showSetup()">⬅️ التعديل على القائمة</button>
+                <button class="btn btn-print" onclick="window.print()">🖨️ طباعة البطاقات (A4)</button>
+                <button class="btn btn-secondary" onclick="location.reload()">⬅️ التعديل على القائمة</button>
             </div>
             <div id="cards-container"></div>
         </div>
@@ -170,17 +167,11 @@
 </div>
 
 <script>
-    let studentsList = [];
+    function generateCards() {
+        const school = document.getElementById("school-input").value.trim();
+        const cls = document.getElementById("class-input").value.trim();
+        const rawText = document.getElementById("names-input").value.trim();
 
-    const schoolInput = document.getElementById("school-input");
-    const classInput = document.getElementById("class-input");
-    const namesInput = document.getElementById("names-input");
-
-    schoolInput.value = localStorage.getItem("schoolName") || schoolInput.value;
-    classInput.value = localStorage.getItem("className") || classInput.value;
-
-    async function generateQRCodes() {
-        const rawText = namesInput.value.trim();
         if (!rawText) {
             alert("يرجى كتابة أو لصق أسماء التلاميذ أولاً.");
             return;
@@ -195,13 +186,10 @@
             return;
         }
 
-        studentsList = lines.map((name, index) => ({
+        let studentsList = lines.map((name, index) => ({
             num: String(index + 1),
             name: name
         }));
-
-        const school = schoolInput.value.trim();
-        const cls = classInput.value.trim();
 
         localStorage.setItem("schoolName", school);
         localStorage.setItem("className", cls);
@@ -210,71 +198,35 @@
         const container = document.getElementById("cards-container");
         container.innerHTML = "";
 
-        for (const student of studentsList) {
+        studentsList.forEach((student) => {
             const card = document.createElement("div");
             card.className = "print-card";
 
             const info = document.createElement("div");
+            info.className, cardInfoClass = "card-info";
             info.className = "card-info";
 
-            const schoolNameElem = document.createElement("b");
-            schoolNameElem.textContent = school;
-
-            const classLine = document.createElement("div");
-            classLine.textContent = "القسم: " + cls;
-
-            const numberLine = document.createElement("div");
-            numberLine.textContent = "رقم التلميذ: " + student.num;
-
-            const nameLine = document.createElement("div");
-            nameLine.append("اسم التلميذ: ");
-            const boldName = document.createElement("b");
-            boldName.textContent = student.name;
-            nameLine.appendChild(boldName);
-
-            info.append(schoolNameElem, classLine, numberLine, nameLine);
+            info.innerHTML = `
+                <b>${school}</b>
+                <div>القسم: ${cls}</div>
+                <div>رقم التلميذ: ${student.num}</div>
+                <div>اسم التلميذ: <b>${student.name}</b></div>
+            `;
 
             const qrBox = document.createElement("div");
             qrBox.className = "qr-box";
-            const canvas = document.createElement("canvas");
-            qrBox.appendChild(canvas);
+            
+            const img = document.createElement("img");
+            img.src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(student.num)}`;
+            img.alt = "QR";
 
+            qrBox.appendChild(img);
             card.append(info, qrBox);
             container.appendChild(card);
-
-            try {
-                await QRCode.toCanvas(canvas, student.num, {
-                    width: 160,
-                    margin: 2,
-                    errorCorrectionLevel: "H"
-                });
-            } catch (error) {
-                console.error("QR generation failed:", error);
-            }
-        }
+        });
 
         document.getElementById("setup-section").style.display = "none";
         document.getElementById("cards-section").style.display = "block";
-    }
-
-    function printCards() {
-        const container = document.getElementById("cards-container");
-        if (!container || !container.querySelector(".print-card")) {
-            alert("ولّد بطاقات QR أولاً.");
-            return;
-        }
-        document.body.classList.add("printing-cards");
-        window.print();
-    }
-
-    window.addEventListener("afterprint", () => {
-        document.body.classList.remove("printing-cards");
-    });
-
-    function showSetup() {
-        document.body.classList.remove("printing-cards");
-        document.getElementById("setup-section").style.display = "block";
-        document.getElementById("cards-section").style.display = "none";
     }
 </script>
 
