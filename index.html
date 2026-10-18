@@ -7,8 +7,8 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1d3557">
 
-    <!-- مكتبة توليد رمز QR -->
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+    <!-- مكتبة توليد رمز QR المضمونة -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.1/qrcode.min.js"></script>
 
     <style>
         * { box-sizing: border-box; }
@@ -157,4 +157,129 @@
         <div id="cards-section" style="display:none;">
             <div class="no-print">
                 <button class="btn btn-print" onclick="printCards()">🖨️ طباعة البطاقات (A4)</button>
-                <button class="btn btn-secondary"
+                <button class="btn btn-secondary" onclick="showSetup()">⬅️ التعديل على القائمة</button>
+            </div>
+            <div id="cards-container"></div>
+        </div>
+
+        <div class="no-print" style="text-align: center; margin-top: 20px;">
+            <a href="teacher.html" style="display:inline-block; padding: 10px 15px; background: #2a9d8f; color: white; border-radius: 8px; font-weight: bold; text-decoration: none; font-size: 13px;">📱 الانتقال إلى واجهة الأستاذ (مسح الغياب)</a>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    function processAndGenerate() {
+        if (typeof QRCode === "undefined") {
+            alert("⚠️ مكتبة توليد رموز QR لم تحميل بعد. تأكد من اتصالك بالإنترنت وحاول مجدداً.");
+            return;
+        }
+
+        const schoolInput = document.getElementById("school-input");
+        const classInput = document.getElementById("class-input");
+        const namesInput = document.getElementById("names-input");
+
+        const rawText = namesInput.value.trim();
+        if (!rawText) {
+            alert("يرجى كتابة أو لصق أسماء التلاميذ أولاً.");
+            return;
+        }
+
+        const lines = rawText.split("\n")
+            .map(line => line.trim())
+            .filter(line => line.length > 0);
+
+        if (lines.length === 0) {
+            alert("لم يتم العثور على أي أسماء صالحة.");
+            return;
+        }
+
+        let studentsList = lines.map((name, index) => ({
+            num: String(index + 1),
+            name: name
+        }));
+
+        const school = schoolInput.value.trim();
+        const cls = classInput.value.trim();
+
+        localStorage.setItem("schoolName", school);
+        localStorage.setItem("className", cls);
+        localStorage.setItem("studentsList", JSON.stringify(studentsList));
+
+        const container = document.getElementById("cards-container");
+        container.innerHTML = "";
+
+        // بناء البطاقات وتوليد الـ QR لكل تلميذ
+        studentsList.forEach((student) => {
+            const card = document.createElement("div");
+            card.className = "print-card";
+
+            const info = document.createElement("div");
+            info.className = "card-info";
+
+            const schoolNameElem = document.createElement("b");
+            schoolNameElem.textContent = school;
+
+            const classLine = document.createElement("div");
+            classLine.textContent = "القسم: " + cls;
+
+            const numberLine = document.createElement("div");
+            numberLine.textContent = "رقم التلميذ: " + student.num;
+
+            const nameLine = document.createElement("div");
+            nameLine.append("اسم التلميذ: ");
+            const boldName = document.createElement("b");
+            boldName.textContent = student.name;
+            nameLine.appendChild(boldName);
+
+            info.append(schoolNameElem, classLine, numberLine, nameLine);
+
+            const qrBox = document.createElement("div");
+            qrBox.className = "qr-box";
+            const canvas = document.createElement("canvas");
+            qrBox.appendChild(canvas);
+
+            card.append(info, qrBox);
+            container.appendChild(card);
+
+            try {
+                QRCode.toCanvas(canvas, student.num, {
+                    width: 160,
+                    margin: 2,
+                    errorCorrectionLevel: "H"
+                }, function (error) {
+                    if (error) console.error("QR error:", error);
+                });
+            } catch (err) {
+                console.error("Canvas error:", err);
+            }
+        });
+
+        document.getElementById("setup-section").style.display = "none";
+        document.getElementById("cards-section").style.display = "block";
+    }
+
+    function printCards() {
+        const container = document.getElementById("cards-container");
+        if (!container || !container.querySelector(".print-card")) {
+            alert("قم بتوليد بطاقات QR أولاً.");
+            return;
+        }
+        document.body.classList.add("printing-cards");
+        window.print();
+    }
+
+    window.addEventListener("afterprint", () => {
+        document.body.classList.remove("printing-cards");
+    });
+
+    function showSetup() {
+        document.body.classList.remove("printing-cards");
+        document.getElementById("setup-section").style.display = "block";
+        document.getElementById("cards-section").style.display = "none";
+    }
+</script>
+
+</body>
+</html>
